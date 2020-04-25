@@ -1,39 +1,35 @@
-/*
-    Team Excalibur(BU_Excalibur)
-*/
-
 #include<bits/stdc++.h>
 using namespace std;
 typedef long long ll;
 #define nl printf("\n")
-
-///big integer template start
+ 
 const int base = 1e9;
 struct bigInt {
-    vector<int>v;
-    char s='+';
+    deque<int>v;
+    bool s=true;
 };
 void Set(bigInt &a) {
     while(a.v.size()>1&&a.v.back()==0)
         a.v.pop_back();
     if(a.v.size()==1&&a.v[0]==0)
-        a.s='+';
+        a.s=true;
 }
 void Print(bigInt a) {
     Set(a);
-    if(a.s=='-'&&!(a.v.size()==1&&a.v[0]==0))
+    if(a.s==false)
         printf("-");
-    printf("%d", (a.v.size()==0) ? 0 : a.v.back());
+    printf("%d",(a.v.size()==0)?0:a.v.back());
     for(int i=(a.v.size()-2); i>=0; i--)
         printf("%09d",a.v[i]);
 }
 bigInt toBigInt(string st) {
     bigInt ans;
     if(st[0]=='-') {
-        ans.s='-';
+        ans.s=false;
         st.erase(st.begin());
     }
     if(st.size()==0) {
+        ans.s=true;
         ans.v.push_back(0);
         return ans;
     }
@@ -43,16 +39,10 @@ bigInt toBigInt(string st) {
         int num=0;
         for(int j=i; j<i+9; j++)
             num=(num*10)+(st[j]-'0');
-        ans.v.insert(ans.v.begin(),num);
+        ans.v.push_front(num);
     }
     Set(ans);
     return ans;
-}
-bigInt toBigInt(char c[]) {
-    string s="";
-    for(int i=0; i<strlen(c); i++)
-        s=s+c[i];
-    return toBigInt(s);
 }
 bigInt toBigInt(ll x) {
     string s="";
@@ -74,7 +64,7 @@ bigInt toBigInt(int x) {
 }
 bool operator < (bigInt a, bigInt b) {
     if(a.s!=b.s) {
-        if(a.s=='-') {
+        if(a.s==false) {
             return true;
         } else
             return false;
@@ -100,18 +90,8 @@ bool operator <= (bigInt a, bigInt b) {
 bool operator >= (bigInt a, bigInt b) {
     return (b<a||a==b);
 }
-bigInt max(bigInt a, bigInt b) {
-    if(a>b)
-        return a;
-    return b;
-}
-bigInt min(bigInt a, bigInt b) {
-    if(a<b)
-        return a;
-    return b;
-}
-vector<int> Plus(vector<int> a, vector<int> b) {
-    vector<int>ans;
+deque<int> Plus(deque<int> a, deque<int> b) {
+    deque<int>ans;
     int carry=0;
     for(int i=0; i<max(a.size(),b.size()); i++) {
         if(i<a.size())
@@ -125,8 +105,8 @@ vector<int> Plus(vector<int> a, vector<int> b) {
         ans.push_back(carry);
     return ans;
 }
-vector<int> Minus(vector<int> a, vector<int> b) {
-    vector<int>ans;
+deque<int> Minus(deque<int> a, deque<int> b) {
+    deque<int>ans;
     int carry=0;
     for(int i=0; i<a.size(); i++) {
         carry+=a[i]-(i<b.size()?b[i]:0);
@@ -146,53 +126,59 @@ bigInt operator + (bigInt a, bigInt b) {
         ans.s=a.s;
         ans.v=Plus(a.v,b.v);
     } else {
-        bigInt c;
-        c.s=a.s;
-        c.v=b.v;
-        if(a<c) {
-            ans.s=b.s;
-            ans.v=Minus(b.v,a.v);
-        } else {
-            ans.s=a.s;
-            ans.v=Minus(a.v,b.v);
+        if(a.s==false){
+            a.s=true;
+            if(a==b){
+                ans=toBigInt(0);
+            }
+            if(a<b){
+                ans.s=true;
+                ans.v=Minus(b.v,a.v);
+            }else{
+                ans.s=false;
+                ans.v=Minus(a.v,b.v);
+            }
+        }else{
+            b.s=true;
+            if(a==b){
+                ans=toBigInt(0);
+            }
+            if(a<b){
+                ans.s=false;
+                ans.v=Minus(b.v,a.v);
+            }else{
+                ans.s=true;
+                ans.v=Minus(a.v,b.v);
+            }
         }
     }
     Set(ans);
     return ans;
 }
-bigInt operator ++ (bigInt &a) {
-    ///++a
-    a=a+toBigInt(1);
-    return a;
-}
 bigInt operator - (bigInt a, bigInt b) {
     Set(a);
     Set(b);
-    bigInt ans,c;
-    if(b.s=='+')
-        c.s='-';
+    bigInt ans;
+    if(b.s==true)
+        b.s=false;
     else
-        c.s='+';
-    c.v=b.v;
-    ans=a+c;
+        b.s=true;
+    ans=a+b;
     return ans;
 }
-bigInt operator -- (bigInt &a) {
-    ///--a
-    a=a-toBigInt(1);
-    return a;
-}
 bigInt operator * (bigInt a, bigInt b) {
+    Set(a);
+    Set(b);
     bigInt ans;
     if(a.s==b.s)
-        ans.s='+';
+        ans.s=true;
     else
-        ans.s='-';
+        ans.s=false;
     ans.v.assign(a.v.size()+b.v.size(),0);
     for(int i=0; i<a.v.size(); i++) {
-        ll carry= 0ll; ///(Zero-L-L)
-        for(int j=0; j<b.v.size()||carry>0; j++) {
-            ll sum=ans.v[i+j]+carry+(ll)a.v[i]*(j<b.v.size()?(ll)b.v[j]:0ll); ///(Zero-L-L)
+        ll carry= 0ll;
+        for(int j=0;(j<b.v.size()||carry>0); j++) {
+            ll sum=ans.v[i+j]+carry+(ll)a.v[i]*(j<b.v.size()?(ll)b.v[j]:0ll);
             ans.v[i+j]=sum%base;
             carry=sum/base;
         }
@@ -200,42 +186,53 @@ bigInt operator * (bigInt a, bigInt b) {
     Set(ans);
     return ans;
 }
-bigInt operator / (bigInt a, bigInt b) {
-    if(b==toBigInt(0)) {
-        cout<<"\nError: division by 0(zero)...\n\n";
-        return b;
-    }
-    bigInt ans,cur;
-    if(a.s==b.s)
-        ans.s='+';
-    else
-        ans.s='-';
-    for(int i=(a.v.size()-1); i>=0; i--) {
-        cur.v.insert(cur.v.begin(),a.v[i]);
+bigInt operator/(bigInt a, bigInt b)
+{
+    if (b == toBigInt(0))
+        return toBigInt(-1);
+    if(b>a) return toBigInt(0);
+    bigInt ans, cur;
+    if(a.s!=b.s)ans.s=false;
+    else ans.s=true;
+    cur.s=b.s=true;
+    for(int i=(a.v.size()-1);i>=0;i--){
+        cur.v.push_front(a.v[i]);
+        Set(cur);
         int x=0,L=0,R=base;
-        while(L<=R) {
-            int mid=(L+R)>>1;
-            if(b*toBigInt(mid)>cur) {
+        while(L<=R){
+            int mid=L+(R-L)/2;
+            if(b*toBigInt(mid)>cur){
                 x=mid;
                 R=mid-1;
-            } else {
+            }else{
                 L=mid+1;
             }
         }
         cur=cur-toBigInt(x-1)*b;
-        ans.v.insert(ans.v.begin(),x-1);
+        ans.v.push_front(x-1);
     }
     Set(ans);
     return ans;
 }
 bigInt Mod(bigInt a,bigInt b) {
     bigInt ans;
-    a.s=b.s='+';
+ 
+ 
+    return ans;
+}
+bigInt operator % (bigInt a, bigInt b) {
+    if(b==toBigInt(0)) {
+        return toBigInt(-1);
+    }
+    bigInt ans;
+    ans.s=a.s;
+    a.s=b.s=true;
     for(int i=(a.v.size()-1); i>=0; i--) {
-        ans.v.insert(ans.v.begin(),a.v[i]);
+        ans.v.push_front(a.v[i]);
+        Set(ans);
         int x=0,L=0,R=base;
         while(L<=R) {
-            int mid=(L+R)>>1;
+            int mid=L+(R-L)/2;
             if(b*toBigInt(mid)>ans) {
                 x=mid;
                 R=mid-1;
@@ -245,19 +242,6 @@ bigInt Mod(bigInt a,bigInt b) {
         }
         ans=ans-toBigInt(x-1)*b;
     }
-    return ans;
-}
-bigInt operator % (bigInt a, bigInt b) {
-    if(b==toBigInt(0)) {
-        cout<<"\nError: Modulation by 0(zero)...\n\n";
-        return b;
-    }
-    bigInt ans;
-    ans=Mod(a,b);
-    if(a.s=='-')
-        ans.s='-';
-    else
-        ans.s='+';
     Set(ans);
     return ans;
 }
@@ -271,9 +255,7 @@ bigInt gcd(bigInt a, bigInt b) {
     return a;
 }
 bigInt lcm(bigInt a, bigInt b) {
-    bigInt tmp=a*b;
-    bigInt  GCD=gcd(a,b);
-    bigInt ans=tmp/GCD;
+    bigInt ans=(a/gcd(a,b))*b;
     Set(ans);
     return ans;
 }
@@ -302,11 +284,10 @@ int log(int n, bigInt a) {
     }
     return ans;
 }
-///big integer template end
-
+ 
 int main() {
     bigInt a,b,c,d;
-    string p="1024345678";
+    string p="1024345678987654";
     char q[]="8888";
     ll r=123456787654;
     int s=765432;
@@ -340,10 +321,6 @@ int main() {
     Print(a+b);nl;
     cout<<"a-b : ";
     Print(a-b);nl;
-    cout<<"++a : ";
-    Print(++a);nl;
-    cout<<"--a : ";
-    Print(--a);nl;
     cout<<"a*b : ";
     Print(a*b);nl;
     cout<<"a/b : ";
